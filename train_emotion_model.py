@@ -1,50 +1,58 @@
-import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator # type: ignore
-from tensorflow.keras.models import Sequential # type: ignore
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout # type: ignore
 import os
+import cv2
+import numpy as np
+import pickle
+from sklearn.svm import SVC
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import classification_report
 
 TRAIN_DIR = "dataset/train"
-TEST_DIR = "dataset/test"
-IMG_SIZE = (48, 48)
-BATCH_SIZE = 16
+TEST_DIR  = "dataset/test"
+IMG_SIZE  = (48, 48)
+MODEL_PATH = "emotion_model.pkl"
 
-# Data generators
-train_datagen = ImageDataGenerator(rescale=1./255, rotation_range=10, zoom_range=0.1, horizontal_flip=True)
-test_datagen = ImageDataGenerator(rescale=1./255)
+def load_dataset(directory):
+    images, labels = [], []
+    for emotion in sorted(os.listdir(directory)):
+        emotion_dir = os.path.join(directory, emotion)
+        if not os.path.isdir(emotion_dir):
+            continue
+        for filename in os.listdir(emotion_dir):
+            if not filename.lower().endswith((".jpg", ".jpeg", ".png")):
+                continue
+            path = os.path.join(emotion_dir, filename)
+            img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                continue
+            img = cv2.resize(img, IMG_SIZE)
+            images.append(img.flatten() / 255.0)
+            labels.append(emotion)
+    return np.array(images), np.array(labels)
 
-train_data = train_datagen.flow_from_directory(
-    TRAIN_DIR,
-    target_size=IMG_SIZE,
-    color_mode='grayscale',
-    batch_size=BATCH_SIZE,
-    class_mode='categorical'
-)
+print("📂 Loading training data...")
+X_train, y_train = load_dataset(TRAIN_DIR)
+print(f"   {len(X_train)} training samples")
 
-test_data = test_datagen.flow_from_directory(
-    TEST_DIR,
-    target_size=IMG_SIZE,
-    color_mode='grayscale',
-    batch_size=BATCH_SIZE,
-    class_mode='categorical'
-)
+print("📂 Loading test data...")
+X_test, y_test = load_dataset(TEST_DIR)
+print(f"   {len(X_test)} test samples")
 
-# Build CNN model
-model = Sequential([
-    Conv2D(32, (3,3), activation='relu', input_shape=(48,48,1)),
-    MaxPooling2D(2,2),
-    Conv2D(64, (3,3), activation='relu'),
-    MaxPooling2D(2,2),
-    Flatten(),
-    Dense(128, activation='relu'),
-    Dropout(0.5),
-    Dense(len(train_data.class_indices), activation='softmax')
-])
+# encode labels
+le = LabelEncoder()
+le.fit(np.concatenate([y_train, y_test]))
+y_train_enc = le.transform(y_train)
+y_test_enc  = le.transform(y_test)
 
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+print("\n🧠 Training SVM classifier...")
+clf = SVC(kernel="rbf", C=10, gamma="scale", probability=True)
+clf.fit(X_train, y_train_enc)
+print("✅ Training complete!")
 
-print("🧠 Training model...")
-history = model.fit(train_data, validation_data=test_data, epochs=20)
+print("\n📊 Evaluation on test set:")
+y_pred = clf.predict(X_test)
+print(classification_report(y_test_enc, y_pred, target_names=le.classes_))
 
-model.save("emotion_model.h5")
-print("✅ Model saved as emotion_model.h5")
+# save model + label encoder together
+with open(MODEL_PATH, "wb") as f:
+    pickle.dump({"model": clf, "label_encoder": le}, f)
+print(f"💾 Model saved to {MODEL_PATH}")

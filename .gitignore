@@ -1,2 +1,4 @@
 dataset/
 venv/
+*.pkl
+*.h5 # tensorflow model format
