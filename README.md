@@ -80,8 +80,18 @@ python train_emotion_model.py
 
 **4. Run live detection**
 
-Opens your webcam and detects emotions in real time with overlay images. Press `q` to quit:
+Opens your webcam and detects emotions in real time with overlay images. Press `q` to quit.
 
+You have two modes to choose from:
+
+**Custom** — uses your trained `emotion_model.pkl` (requires step 3):
 ```bash
-python detect_emotion_live.py
+python detect_emotion_live.py --mode custom
 ```
+
+**Pretrained** — downloads a pretrained ONNX model on first run, no training needed:
+```bash
+python detect_emotion_live.py --mode pretrained
+```
+
+`--mode custom` is the default if you omit the flag. The pretrained model recognises 7 emotions: angry, disgust, fearful, happy, neutral, sad, surprised.
