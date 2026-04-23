@@ -1,22 +1,35 @@
-# Face recognition with OpenCV
+# Face Emotion Detector
 
-The images in this references memes! (right now the program is using the hamster reactions from tiktok)
+Real-time facial emotion detection using your webcam. Detects your expression and displays a matching meme overlay (currently using hamster reaction images from TikTok) side by side with the camera feed.
 
-## Instructions
+## Display
 
-### Note on TensorFlow
-This project originally used TensorFlow for the emotion classification model. TensorFlow does not support Python 3.13 or newer — if you try to install it you'll get:
+The window is split into two square panels:
+- **Left** — live camera feed with face bounding box and emotion label
+- **Right** — meme overlay matching the detected emotion (white background when no face is detected)
 
+## Requirements
+
+- Python 3.8+
+- Webcam
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
 ```
-ERROR: Could not find a version that satisfies the requirement tensorflow
-ERROR: No matching distribution found for tensorflow
+
+Or manually:
+
+```bash
+pip install opencv-python numpy scikit-learn
 ```
 
-To fix this, the project has been rewritten to use **scikit-learn** (SVM classifier) instead. It works on any Python version, installs in seconds, and produces a `.pkl` model file instead of `.h5`.
+> **Note:** TensorFlow is not used. This project uses a scikit-learn SVM classifier, which works on Python 3.13+ and installs in seconds.
 
 ---
 
-### Setup
+## Setup
 
 Optionally create a virtual environment first:
 
@@ -34,64 +47,61 @@ Activate it:
 source venv/bin/activate
 ```
 
-Install dependencies:
-
-```bash
-pip install opencv-python numpy scikit-learn
-```
-
 ---
 
-### Steps to run
+## Steps to run
 
-**1. Collect emotion images** (skip if dataset already exists)
+### 1. Collect emotion images
+*(skip if the `dataset/` folder already exists)*
 
-Opens your webcam:
+Opens your webcam. Press a key to capture a 5-second burst for that emotion:
 
 ```bash
 python collect_emotions.py
 ```
 
-Press a key to capture a 5-second burst for that emotion:
-- `n` → neutral
-- `h` → happy
-- `s` → sad
-- `a` → angry
-- `u` → surprise
-- `q` → quit
+| Key | Emotion  |
+|-----|----------|
+| `n` | neutral  |
+| `h` | happy    |
+| `s` | sad      |
+| `a` | angry    |
+| `u` | surprise |
+| `q` | quit     |
 
+---
 
+### 2. Resize overlays
+*(skip if overlays are already correctly sized)*
 
-**2. Resize overlays** (skip if overlays are already sized correctly)
-
-Resizes all PNGs in the `overlays/` folder to 128×128:
+Resizes all PNGs in `overlays/` to 128×128:
 
 ```bash
 python resize_overlays.py
 ```
 
-**3. Train the model**
+---
 
-Reads the dataset and saves a trained SVM model to `emotion_model.pkl`:
+### 3. Train the model
+
+Reads the dataset and saves a trained SVM to `emotion_model.pkl`:
 
 ```bash
 python train_emotion_model.py
 ```
 
-**4. Run live detection**
+---
 
-Opens your webcam and detects emotions in real time with overlay images. Press `q` to quit.
+### 4. Run live detection
 
-You have two modes to choose from:
-
-**Custom** — uses your trained `emotion_model.pkl` (requires step 3):
 ```bash
-python detect_emotion_live.py --mode custom
+python detect_emotion_live.py
 ```
 
-**Pretrained** — downloads a pretrained ONNX model on first run, no training needed:
-```bash
-python detect_emotion_live.py --mode pretrained
-```
+Press `q` to quit.
 
-`--mode custom` is the default if you omit the flag. The pretrained model recognises 7 emotions: angry, disgust, fearful, happy, neutral, sad, surprised.
+---
+
+## License
+
+MIT © Maria
