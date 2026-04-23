@@ -67,9 +67,22 @@ def predict_emotion(gray_face):
     idx = np.argmax(probs)
     return EMOTIONS[idx], probs[idx]
 
+DISPLAY_SIZE = 480   # each panel is DISPLAY_SIZE x DISPLAY_SIZE
+
+def crop_to_square(img):
+    """Centre-crop an image to 1:1 aspect ratio."""
+    h, w = img.shape[:2]
+    size = min(h, w)
+    y0 = (h - size) // 2
+    x0 = (w - size) // 2
+    return img[y0:y0+size, x0:x0+size]
+
 cap = open_camera()
 if cap is None:
     exit()
+
+# blank right panel shown when no face / no overlay is detected
+blank_panel = np.full((DISPLAY_SIZE, DISPLAY_SIZE, 3), 255, dtype=np.uint8)
 
 print("🤖 Real-time Emotion Detection started! (Press 'q' to quit)")
 while True:
@@ -83,8 +96,13 @@ while True:
             break
         continue
 
+    # flip horizontally so it behaves like a mirror
+    frame = cv2.flip(frame, 1)
+
     gray  = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+
+    current_overlay = blank_panel  # default right panel
 
     for (x, y, w, h) in faces:
         face_gray = gray[y:y+h, x:x+w]
@@ -96,16 +114,18 @@ while True:
 
         if emotion in overlays:
             overlay_img = overlays[emotion]
-            if overlay_img.shape[2] == 4:
-                alpha = overlay_img[:, :, 3] / 255.0
-            else:
-                alpha = np.ones(overlay_img.shape[:2], dtype=float)
+            # build a square BGR panel from the overlay
+            panel = cv2.resize(overlay_img[:, :, :3], (DISPLAY_SIZE, DISPLAY_SIZE))
+            current_overlay = panel
 
-            oy = max(y - OVERLAY_SIZE[1] - 10, 0)
-            ox = min(x + w + 10, frame.shape[1] - OVERLAY_SIZE[0])
-            overlay_image_alpha(frame, overlay_img, (ox, oy), alpha)
+    # ── build side-by-side display ────────────────────────────────────────────
+    cam_square   = crop_to_square(frame)
+    cam_panel    = cv2.resize(cam_square, (DISPLAY_SIZE, DISPLAY_SIZE))
+    right_panel  = current_overlay
 
-    cv2.imshow("Emotion Detector", frame)
+    combined = np.hstack([cam_panel, right_panel])
+    cv2.imshow("Emotion Detector", combined)
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         print("👋 Exiting...")
         break
