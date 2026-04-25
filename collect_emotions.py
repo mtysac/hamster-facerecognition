@@ -1,6 +1,5 @@
 import cv2
 import os
-import numpy
 import time
 import random
 
@@ -98,4 +97,4 @@ while True:
 
             print(f'✅ Done capturing for {emotion} ({counts[emotion]}/100\n)')
 cap.release()
-cv2.destroyAllWindows
+cv2.destroyAllWindows()

@@ -2,6 +2,10 @@
 
 Real-time facial emotion detection using your webcam. Detects your expression and displays a matching meme overlay (currently using hamster reaction images from TikTok) side by side with the camera feed.
 
+![CI](https://github.com/MTYSAC/hamster-facerecognition/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 ## Display
 
 The window is split into two square panels:
@@ -10,7 +14,7 @@ The window is split into two square panels:
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.8–3.13 (opencv-python does not yet support 3.14+)
 - Webcam
 
 Install dependencies:
@@ -19,13 +23,7 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Or manually:
-
-```bash
-pip install opencv-python numpy scikit-learn
-```
-
-> **Note:** TensorFlow is not used. This project uses a scikit-learn SVM classifier, which works on Python 3.13+ and installs in seconds.
+> **Note:** TensorFlow is not used. This project uses a scikit-learn SVM classifier, which installs in seconds.
 
 ---
 
@@ -99,6 +97,34 @@ python detect_emotion_live.py
 ```
 
 Press `q` to quit.
+
+---
+
+## Testing
+
+Run the test suite (no webcam or trained model required):
+
+```bash
+pip install pytest
+pytest tests/ -v
+```
+
+Tests cover `crop_to_square`, `predict_emotion`, `overlay_image_alpha`, `load_dataset`, and the model pickle round-trip. CI runs automatically on every push via GitHub Actions.
+
+---
+
+## Project structure
+
+```
+├── collect_emotions.py      # webcam dataset collector
+├── train_emotion_model.py   # SVM training script
+├── detect_emotion_live.py   # real-time detection
+├── resize_overlays.py       # overlay pre-processing utility
+├── overlays/                # emotion overlay images (PNG)
+├── dataset/                 # collected face images (gitignored)
+├── tests/                   # pytest test suite
+└── .github/workflows/ci.yml # GitHub Actions CI
+```
 
 ---
 

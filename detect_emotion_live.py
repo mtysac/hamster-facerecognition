@@ -83,58 +83,59 @@ def crop_to_square(img: np.ndarray) -> np.ndarray:
     x0 = (w - size) // 2
     return img[y0:y0+size, x0:x0+size]
 
-cap = open_camera()
-if cap is None:
-    exit()
+if __name__ == "__main__":
+    cap = open_camera()
+    if cap is None:
+        exit()
 
-# blank right panel shown when no face / no overlay is detected
-blank_panel = np.full((DISPLAY_SIZE, DISPLAY_SIZE, 3), 255, dtype=np.uint8)
+    # blank right panel shown when no face / no overlay is detected
+    blank_panel = np.full((DISPLAY_SIZE, DISPLAY_SIZE, 3), 255, dtype=np.uint8)
 
-print("🤖 Real-time Emotion Detection started! (Press 'q' to quit)")
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("⚠️ Lost camera feed! Retrying...")
-        cap.release()
-        cap = open_camera()
-        if cap is None:
-            print("❌ Could not reconnect. Exiting...")
+    print("🤖 Real-time Emotion Detection started! (Press 'q' to quit)")
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("⚠️ Lost camera feed! Retrying...")
+            cap.release()
+            cap = open_camera()
+            if cap is None:
+                print("❌ Could not reconnect. Exiting...")
+                break
+            continue
+
+        # flip horizontally so it behaves like a mirror
+        frame = cv2.flip(frame, 1)
+
+        gray  = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+
+        current_overlay = blank_panel  # default right panel
+
+        for (x, y, w, h) in faces:
+            face_gray = gray[y:y+h, x:x+w]
+            emotion, confidence = predict_emotion(face_gray)
+
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            cv2.putText(frame, f"{emotion} ({confidence:.2f})", (x, y - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+            if emotion in overlays:
+                overlay_img = overlays[emotion]
+                # build a square BGR panel from the overlay
+                panel = cv2.resize(overlay_img[:, :, :3], (DISPLAY_SIZE, DISPLAY_SIZE))
+                current_overlay = panel
+
+        # ── build side-by-side display ────────────────────────────────────────
+        cam_square   = crop_to_square(frame)
+        cam_panel    = cv2.resize(cam_square, (DISPLAY_SIZE, DISPLAY_SIZE))
+        right_panel  = current_overlay
+
+        combined = np.hstack([cam_panel, right_panel])
+        cv2.imshow("Emotion Detector", combined)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            print("👋 Exiting...")
             break
-        continue
 
-    # flip horizontally so it behaves like a mirror
-    frame = cv2.flip(frame, 1)
-
-    gray  = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-
-    current_overlay = blank_panel  # default right panel
-
-    for (x, y, w, h) in faces:
-        face_gray = gray[y:y+h, x:x+w]
-        emotion, confidence = predict_emotion(face_gray)
-
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        cv2.putText(frame, f"{emotion} ({confidence:.2f})", (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-
-        if emotion in overlays:
-            overlay_img = overlays[emotion]
-            # build a square BGR panel from the overlay
-            panel = cv2.resize(overlay_img[:, :, :3], (DISPLAY_SIZE, DISPLAY_SIZE))
-            current_overlay = panel
-
-    # ── build side-by-side display ────────────────────────────────────────────
-    cam_square   = crop_to_square(frame)
-    cam_panel    = cv2.resize(cam_square, (DISPLAY_SIZE, DISPLAY_SIZE))
-    right_panel  = current_overlay
-
-    combined = np.hstack([cam_panel, right_panel])
-    cv2.imshow("Emotion Detector", combined)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        print("👋 Exiting...")
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+    cap.release()
+    cv2.destroyAllWindows()
