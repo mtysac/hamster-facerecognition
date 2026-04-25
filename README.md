@@ -14,7 +14,7 @@ The window is split into two square panels:
 
 ## Requirements
 
-- Python 3.8–3.13 (opencv-python 4.13.0.92 does not yet support 3.14+)
+- Python 3.8–3.13 (opencv-python does not yet support 3.14+)
 - Webcam
 
 Install dependencies:
