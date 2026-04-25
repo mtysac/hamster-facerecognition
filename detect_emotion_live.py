@@ -3,6 +3,7 @@ import numpy as np
 import pickle
 import time
 import os
+from typing import Optional
 
 # config
 MODEL_PATH   = "emotion_model.pkl"
@@ -35,7 +36,7 @@ for emotion in EMOTIONS:
         print(f"⚠️  No overlay found for '{emotion}' (skipping)")
 
 # camera handler
-def open_camera(index=0):
+def open_camera(index: int = 0) -> Optional[cv2.VideoCapture]:
     print("🎥 Attempting to open camera...")
     for backend in [cv2.CAP_MSMF, cv2.CAP_DSHOW]:
         cap = cv2.VideoCapture(index, backend)
@@ -47,7 +48,12 @@ def open_camera(index=0):
     print("❌ ERROR: Could not access webcam.")
     return None
 
-def overlay_image_alpha(img, overlay, pos, alpha_mask):
+def overlay_image_alpha(
+    img: np.ndarray,
+    overlay: np.ndarray,
+    pos: tuple[int, int],
+    alpha_mask: np.ndarray,
+) -> None:
     x, y = pos
     h, w = overlay.shape[0], overlay.shape[1]
     # clamp to frame bounds
@@ -61,7 +67,7 @@ def overlay_image_alpha(img, overlay, pos, alpha_mask):
     alpha = alpha_mask[:h, :w, None]
     img[y:y+h, x:x+w] = (alpha * overlay[:h, :w, :3] + (1 - alpha) * overlay_roi).astype(np.uint8)
 
-def predict_emotion(gray_face):
+def predict_emotion(gray_face: np.ndarray) -> tuple[str, float]:
     face = cv2.resize(gray_face, IMG_SIZE).flatten() / 255.0
     probs = clf.predict_proba([face])[0]
     idx = np.argmax(probs)
@@ -69,7 +75,7 @@ def predict_emotion(gray_face):
 
 DISPLAY_SIZE = 480   # each panel is DISPLAY_SIZE x DISPLAY_SIZE
 
-def crop_to_square(img):
+def crop_to_square(img: np.ndarray) -> np.ndarray:
     """Centre-crop an image to 1:1 aspect ratio."""
     h, w = img.shape[:2]
     size = min(h, w)
