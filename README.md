@@ -130,4 +130,4 @@ Tests cover `crop_to_square`, `predict_emotion`, `overlay_image_alpha`, `load_da
 
 ## License
 
-MIT © Maria
+MIT © Maria Cabrera
