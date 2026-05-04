@@ -2,6 +2,7 @@ dataset/
 venv/
 *.pkl
 *.h5
+*.task
 
 # Python
 __pycache__/

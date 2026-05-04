@@ -17,10 +17,16 @@ The window is split into two square panels:
 - Python 3.8–3.13 (opencv-python does not yet support 3.14+)
 - Webcam
 
-Install dependencies:
+Install core dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+For the MediaPipe detector (optional):
+
+```bash
+pip install mediapipe
 ```
 
 > **Note:** TensorFlow is not used. This project uses a scikit-learn SVM classifier, which installs in seconds.
@@ -47,9 +53,22 @@ source venv/bin/activate
 
 ---
 
+## Two detector modes
+
+| Mode | Flag | Face detection | Features | Model file |
+|------|------|---------------|----------|------------|
+| Haar (default) | *(none)* | OpenCV Haar cascade | Raw pixels (48×48) | `emotion_model.pkl` |
+| MediaPipe | `--detector mediapipe` | MediaPipe FaceLandmarker (Tasks API) | 478 landmarks × 3 | `emotion_model_mediapipe.pkl` |
+
+Both modes use the same SVM pipeline and overlay display. MediaPipe is generally more accurate and robust to lighting, but requires an extra install and a separately trained model.
+
+---
+
 ## Steps to run
 
-### 1. Collect emotion images
+### Option A — own dataset (Haar)
+
+#### 1. Collect emotion images
 *(skip if the `dataset/` folder already exists)*
 
 Opens your webcam. Press a key to capture a 5-second burst for that emotion:
@@ -67,36 +86,56 @@ python collect_emotions.py
 | `u` | surprise |
 | `q` | quit     |
 
----
-
-### 2. Resize overlays
+#### 2. Resize overlays
 *(skip if overlays are already correctly sized)*
-
-Resizes all PNGs in `overlays/` to 128×128:
 
 ```bash
 python resize_overlays.py
 ```
 
----
-
-### 3. Train the model
-
-Reads the dataset and saves a trained SVM to `emotion_model.pkl`:
+#### 3. Train the model
 
 ```bash
 python train_emotion_model.py
 ```
 
----
+Saves `emotion_model.pkl`.
 
-### 4. Run live detection
+#### 4. Run live detection
 
 ```bash
 python detect_emotion_live.py
 ```
 
-Press `q` to quit.
+---
+
+### Option B — MediaPipe landmarks
+
+Requires the same dataset collected in Option A (MediaPipe extracts landmarks from those images instead of raw pixels).
+
+#### 1. Install MediaPipe
+
+```bash
+pip install mediapipe
+```
+
+#### 2. Train the MediaPipe model
+
+```bash
+python train_emotion_model_mediapipe.py
+```
+
+Saves `emotion_model_mediapipe.pkl`. The script auto-downloads `face_landmarker.task` (~30 MB) on first run.
+
+#### 3. Run live detection
+
+```bash
+python detect_emotion_live.py --detector mediapipe
+```
+
+---
+
+Press `q` to quit either mode.
 
 ---
 
@@ -116,14 +155,15 @@ Tests cover `crop_to_square`, `predict_emotion`, `overlay_image_alpha`, `load_da
 ## Project structure
 
 ```
-├── collect_emotions.py      # webcam dataset collector
-├── train_emotion_model.py   # SVM training script
-├── detect_emotion_live.py   # real-time detection
-├── resize_overlays.py       # overlay pre-processing utility
-├── overlays/                # emotion overlay images (PNG)
-├── dataset/                 # collected face images (gitignored)
-├── tests/                   # pytest test suite
-└── .github/workflows/ci.yml # GitHub Actions CI
+├── collect_emotions.py               # webcam dataset collector
+├── train_emotion_model.py            # SVM training (Haar / raw pixels)
+├── train_emotion_model_mediapipe.py  # SVM training (MediaPipe landmarks)
+├── detect_emotion_live.py            # real-time detection (--detector haar|mediapipe)
+├── resize_overlays.py                # overlay pre-processing utility
+├── overlays/                         # emotion overlay images (PNG)
+├── dataset/                          # collected face images (gitignored)
+├── tests/                            # pytest test suite
+└── .github/workflows/ci.yml          # GitHub Actions CI
 ```
 
 ---
